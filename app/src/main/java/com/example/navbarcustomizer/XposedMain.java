@@ -1,6 +1,7 @@
 package com.example.navbarcustomizer;
 
 import android.content.res.Resources;
+import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
 import de.robv.android.xposed.IXposedHookLoadPackage;
