@@ -56,6 +56,7 @@ public class XposedMain implements IXposedHookLoadPackage {
         }
 
         // 2. Hook 资源高度
+
         try {
             XposedHelpers.findAndHookMethod(Resources.class, "getDimensionPixelSize", int.class, new XC_MethodHook() {
                 @Override
@@ -63,14 +64,25 @@ public class XposedMain implements IXposedHookLoadPackage {
                     int id = (int) param.args[0];
                     try {
                         Resources res = (Resources) param.thisObject;
-                        String entryName = res.getResourceEntryName(id);
-                        if (entryName != null) {
-                            if (entryName.equals("navigation_bar_height") && customNavBarHeight != -1) {
-                                param.setResult(customNavBarHeight);
-                            } else if (entryName.equals("navigation_bar_height_landscape") && customNavBarHeightLandscape != -1) {
-                                param.setResult(customNavBarHeightLandscape);
-                            } else if (entryName.equals("navigation_bar_width") && customNavBarWidth != -1) {
-                                param.setResult(customNavBarWidth);
+                
+                        // 检查资源是否属于 android 框架层（framework-res 中的 dimen）
+                        String pkgName = res.getResourcePackageName(id);
+                        if ("android".equals(pkgName)) {
+                            String entryName = res.getResourceEntryName(id);
+                            if (entryName != null) {
+                                float density = res.getDisplayMetrics().density;
+                                
+                                if (entryName.equals("navigation_bar_height") && customNavBarHeight != -1) {
+                                    // 如果你想填 dp，可以用 customNavBarHeight * density；如果直接填像素 px，则去掉 density
+                                    int px = (int) (customNavBarHeight * density + 0.5f);
+                                    param.setResult(px);
+                                } else if (entryName.equals("navigation_bar_height_landscape") && customNavBarHeightLandscape != -1) {
+                                    int px = (int) (customNavBarHeightLandscape * density + 0.5f);
+                                    param.setResult(px);
+                                } else if (entryName.equals("navigation_bar_width") && customNavBarWidth != -1) {
+                                    int px = (int) (customNavBarWidth * density + 0.5f);
+                                    param.setResult(px);
+                                }
                             }
                         }
                     } catch (Exception ignored) {}
