@@ -12,6 +12,7 @@ dependencyResolutionManagement {
         mavenCentral()
         // 引入开源 Xposed 仓库源 (JitPack)
         maven { url 'https://jitpack.io' }
+        maven { url 'https://api.xposed.info/' }
     }
 }
 
