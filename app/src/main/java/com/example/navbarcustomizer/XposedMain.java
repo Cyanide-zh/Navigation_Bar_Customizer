@@ -16,7 +16,6 @@ import java.util.Properties;
 public class XposedMain implements IXposedHookLoadPackage {
 
     private static final String CONFIG_PATH = "/data/system/navbar_customizer_config.txt";
-
     private boolean alwaysDark = true;
     private float customNavBarHeightDp = -1f;
 
@@ -46,7 +45,7 @@ public class XposedMain implements IXposedHookLoadPackage {
             } catch (Throwable ignored) {}
         }
 
-        // 2. 强行修改 NavigationBarView 布局高度
+        // 2. Hook NavigationBarView 构造函数强行调整高度
         if (customNavBarHeightDp != -1f) {
             try {
                 Class<?> navBarViewClass = XposedHelpers.findClassIfExists(
@@ -55,8 +54,7 @@ public class XposedMain implements IXposedHookLoadPackage {
                 );
 
                 if (navBarViewClass != null) {
-                    // Hook 视图重新布局或大小时触发的方法
-                    XposedHelpers.findAndHookMethod(navBarViewClass, "updateLayoutters", int.class, new XC_MethodHook() {
+                    XposedBridge.hookAllConstructors(navBarViewClass, new XC_MethodHook() {
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                             View navBarView = (View) param.thisObject;
@@ -65,16 +63,17 @@ public class XposedMain implements IXposedHookLoadPackage {
                             int targetPx = (int) (customNavBarHeightDp * density + 0.5f);
 
                             ViewGroup.LayoutParams layoutParams = navBarView.getLayoutParams();
-                            if (layoutParams != null && layoutParams.height != targetPx) {
+                            if (layoutParams != null) {
                                 layoutParams.height = targetPx;
                                 navBarView.setLayoutParams(layoutParams);
-                                XposedBridge.log("NavbarCustomizer: Forced NavigationBarView height to " + targetPx + "px");
+                                XposedBridge.log("NavbarCustomizer: Forced NavigationBarView height via constructor to " + targetPx + "px");
                             }
                         }
                     });
+                    XposedBridge.log("NavbarCustomizer: Successfully hooked NavigationBarView constructors");
                 }
             } catch (Throwable e) {
-                XposedBridge.log("NavbarCustomizer: Failed to hook layout -> " + e.getMessage());
+                XposedBridge.log("NavbarCustomizer: Failed to hook constructors -> " + e.getMessage());
             }
         }
     }
