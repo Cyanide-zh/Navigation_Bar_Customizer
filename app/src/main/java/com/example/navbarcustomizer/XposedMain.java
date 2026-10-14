@@ -1,6 +1,5 @@
 package com.example.navbarcustomizer;
 
-import android.content.res.Resources;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
@@ -47,15 +46,16 @@ public class XposedMain implements IXposedHookLoadPackage {
             } catch (Throwable ignored) {}
         }
 
-        // 2. 直接 Hook 导航栏视图的测量逻辑 (NavigationBarView) 强制设定高度
+        // 2. 强行修改 NavigationBarView 布局高度
         if (customNavBarHeightDp != -1f) {
             try {
                 Class<?> navBarViewClass = XposedHelpers.findClassIfExists(
                         "com.android.systemui.navigationbar.NavigationBarView", 
                         lpparam.classLoader
                 );
-                
+
                 if (navBarViewClass != null) {
+                    // Hook 视图重新布局或大小时触发的方法
                     XposedHelpers.findAndHookMethod(navBarViewClass, "updateLayoutters", int.class, new XC_MethodHook() {
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) throws Throwable {
@@ -72,10 +72,9 @@ public class XposedMain implements IXposedHookLoadPackage {
                             }
                         }
                     });
-                    XposedBridge.log("NavbarCustomizer: Successfully hooked NavigationBarView layout");
                 }
             } catch (Throwable e) {
-                XposedBridge.log("NavbarCustomizer: Failed to hook NavigationBarView -> " + e.getMessage());
+                XposedBridge.log("NavbarCustomizer: Failed to hook layout -> " + e.getMessage());
             }
         }
     }
