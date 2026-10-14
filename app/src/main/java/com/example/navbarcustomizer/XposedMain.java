@@ -1,6 +1,5 @@
 package com.example.navbarcustomizer;
 
-import android.content.res.XResources;
 import android.content.res.Resources;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -14,13 +13,15 @@ import java.util.Properties;
 
 public class XposedMain implements IXposedHookLoadPackage {
 
-    // 配置文件路径（建议放在应用私有目录，或者具有全局读取权限的路径）
+    // 配置文件路径
     private static final String CONFIG_PATH = "/data/system/navbar_customizer_config.txt";
 
     private boolean alwaysDark = true;
-    private int customNavBarHeight = -1;
-    private int customNavBarHeightLandscape = -1;
-    private int customNavBarWidth = -1;
+    
+    // 显式声明全局变量，供各个方法调用
+    private float customNavBarHeightDp = -1f;
+    private float customNavBarHeightLandscapeDp = -1f;
+    private float customNavBarWidthDp = -1f;
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
@@ -30,10 +31,10 @@ public class XposedMain implements IXposedHookLoadPackage {
 
         XposedBridge.log("NavbarCustomizer: Loaded into SystemUI");
 
-        // 加载配置文件
+        // 每次进程加载时读取配置文件
         loadConfig();
 
-        // 1. Hook 导航栏暗色强度
+        // 1. Hook 导航栏暗色强度 (applyDarkIntensity)
         if (alwaysDark) {
             try {
                 Class<?> taskbarDelegateClass = XposedHelpers.findClassIfExists(
@@ -44,7 +45,7 @@ public class XposedMain implements IXposedHookLoadPackage {
                     XposedHelpers.findAndHookMethod(taskbarDelegateClass, "applyDarkIntensity", float.class, new XC_MethodHook() {
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                            // 强制设为 1.0f 保持暗色
+                            // 强制将暗色强度设为 1.0f
                             param.args[0] = 1.0f;
                         }
                     });
@@ -55,8 +56,7 @@ public class XposedMain implements IXposedHookLoadPackage {
             }
         }
 
-        // 2. Hook 资源高度
-        
+        // 2. Hook 资源高度 (支持 dp 自动换算为 px)
         try {
             XposedHelpers.findAndHookMethod(Resources.class, "getDimensionPixelSize", int.class, new XC_MethodHook() {
                 @Override
@@ -73,23 +73,22 @@ public class XposedMain implements IXposedHookLoadPackage {
                                 // 获取当前设备的屏幕密度 (density)，用于 dp 转 px
                                 float density = res.getDisplayMetrics().density;
 
-                                if (entryName.equals("navigation_bar_height") && customNavBarHeight != -1) {
-                                    // 如果你想填 dp，可以用 customNavBarHeight * density；如果直接填像素 px，则去掉 density
-                                    int px = (int) (customNavBarHeight * density + 0.5f);
+                                if (entryName.equals("navigation_bar_height") && customNavBarHeightDp != -1f) {
+                                    int px = (int) (customNavBarHeightDp * density + 0.5f);
                                     param.setResult(px);
-                                } else if (entryName.equals("navigation_bar_height_landscape") && customNavBarHeightLandscape != -1) {
-                                    int px = (int) (customNavBarHeightLandscape * density + 0.5f);
+                                } else if (entryName.equals("navigation_bar_height_landscape") && customNavBarHeightLandscapeDp != -1f) {
+                                    int px = (int) (customNavBarHeightLandscapeDp * density + 0.5f);
                                     param.setResult(px);
-                                } else if (entryName.equals("navigation_bar_width") && customNavBarWidth != -1) {
-                                    int px = (int) (customNavBarWidth * density + 0.5f);
+                                } else if (entryName.equals("navigation_bar_width") && customNavBarWidthDp != -1f) {
+                                    int px = (int) (customNavBarWidthDp * density + 0.5f);
                                     param.setResult(px);
                                 }
                             }
                         }
                     } catch (Exception ignored) {}
                 }
-            }); 
-            XposedBridge.log("NavbarCustomizer: Successfully hooked getDimensionPixelSize");
+            });
+            XposedBridge.log("NavbarCustomizer: Successfully hooked getDimensionPixelSize with dp conversion");
         } catch (Throwable e) {
             XposedBridge.log("NavbarCustomizer: Failed to hook getDimensionPixelSize -> " + e.getMessage());
         }
@@ -109,15 +108,15 @@ public class XposedMain implements IXposedHookLoadPackage {
             alwaysDark = Boolean.parseBoolean(props.getProperty("always_dark_intensity", "true"));
             
             String heightStr = props.getProperty("navigation_bar_height");
-            if (heightStr != null) customNavBarHeight = Integer.parseInt(heightStr.trim());
+            if (heightStr != null) customNavBarHeightDp = Float.parseFloat(heightStr.trim());
 
             String heightLandStr = props.getProperty("navigation_bar_height_landscape");
-            if (heightLandStr != null) customNavBarHeightLandscape = Integer.parseInt(heightLandStr.trim());
+            if (heightLandStr != null) customNavBarHeightLandscapeDp = Float.parseFloat(heightLandStr.trim());
 
             String widthStr = props.getProperty("navigation_bar_width");
-            if (widthStr != null) customNavBarWidth = Integer.parseInt(widthStr.trim());
+            if (widthStr != null) customNavBarWidthDp = Float.parseFloat(widthStr.trim());
 
-            XposedBridge.log("NavbarCustomizer: Config loaded successfully.");
+            XposedBridge.log("NavbarCustomizer: Config loaded successfully (dp mode).");
         } catch (Exception e) {
             XposedBridge.log("NavbarCustomizer: Failed to load config -> " + e.getMessage());
         }
