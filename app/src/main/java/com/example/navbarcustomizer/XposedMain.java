@@ -63,30 +63,30 @@ public class XposedMain implements IXposedHookLoadPackage {
                     int id = (int) param.args[0];
                     try {
                         Resources res = (Resources) param.thisObject;
-                
-                        // 检查资源是否属于 android 框架层（framework-res 中的 dimen）
+                        
+                        // 确保资源属于 android 框架层（framework-res）
                         String pkgName = res.getResourcePackageName(id);
                         if ("android".equals(pkgName)) {
                             String entryName = res.getResourceEntryName(id);
                             if (entryName != null) {
+                                // 获取当前设备的屏幕密度 (density)，用于 dp 转 px
                                 float density = res.getDisplayMetrics().density;
-                        
-                                if (entryName.equals("navigation_bar_height") && customNavBarHeight != -1) {
-                                    // 如果你想填 dp，可以用 customNavBarHeight * density；如果直接填像素 px，则去掉 density
-                                    int px = (int) (customNavBarHeight + 0.5f);
+
+                                if (entryName.equals("navigation_bar_height") && customNavBarHeightDp != -1) {
+                                    int px = (int) (customNavBarHeightDp * density + 0.5f);
                                     param.setResult(px);
-                                } else if (entryName.equals("navigation_bar_height_landscape") && customNavBarHeightLandscape != -1) {
-                                    int px = (int) (customNavBarHeightLandscape + 0.5f);
+                                } else if (entryName.equals("navigation_bar_height_landscape") && customNavBarHeightLandscapeDp != -1) {
+                                    int px = (int) (customNavBarHeightLandscapeDp * density + 0.5f);
                                     param.setResult(px);
-                                } else if (entryName.equals("navigation_bar_width") && customNavBarWidth != -1) {
-                                    int px = (int) (customNavBarWidth + 0.5f);
+                                } else if (entryName.equals("navigation_bar_width") && customNavBarWidthDp != -1) {
+                                    int px = (int) (customNavBarWidthDp * density + 0.5f);
                                     param.setResult(px);
                                 }
                             }
                         }
                     } catch (Exception ignored) {}
                 }
-            });
+            }); 
             XposedBridge.log("NavbarCustomizer: Successfully hooked getDimensionPixelSize");
         } catch (Throwable e) {
             XposedBridge.log("NavbarCustomizer: Failed to hook getDimensionPixelSize -> " + e.getMessage());
