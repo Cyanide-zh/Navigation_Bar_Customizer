@@ -22,33 +22,35 @@ public class XposedMain implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-        if (!"com.android.systemui".equals(lpparam.packageName)) {
+        // 兼容处理：同时监听系统核心服务进程 ("android") 和系统界面进程 ("com.android.systemui")
+        if (!"com.android.systemui".equals(lpparam.packageName) && !"android".equals(lpparam.packageName)) {
             return;
         }
 
-        XposedBridge.log("NavbarCustomizer: Loaded into SystemUI (Full Dimension Override Mode)");
-
         loadConfig();
 
-        // 1. 保持三大金刚键暗色
-        if (alwaysDark) {
-            try {
-                Class<?> taskbarDelegateClass = XposedHelpers.findClassIfExists(
-                        "com.android.systemui.navigationbar.TaskbarDelegate$3", 
-                        lpparam.classLoader
-                );
-                if (taskbarDelegateClass != null) {
-                    XposedHelpers.findAndHookMethod(taskbarDelegateClass, "applyDarkIntensity", float.class, new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                            param.args[0] = 1.0f;
-                        }
-                    });
-                }
-            } catch (Throwable ignored) {}
+        // 1. 如果在 SystemUI 进程，控制三大金刚键暗色
+        if ("com.android.systemui".equals(lpparam.packageName)) {
+            XposedBridge.log("NavbarCustomizer: Loaded into SystemUI");
+            if (alwaysDark) {
+                try {
+                    Class<?> taskbarDelegateClass = XposedHelpers.findClassIfExists(
+                            "com.android.systemui.navigationbar.TaskbarDelegate$3", 
+                            lpparam.classLoader
+                    );
+                    if (taskbarDelegateClass != null) {
+                        XposedHelpers.findAndHookMethod(taskbarDelegateClass, "applyDarkIntensity", float.class, new XC_MethodHook() {
+                            @Override
+                            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                                param.args[0] = 1.0f;
+                            }
+                        });
+                    }
+                } catch (Throwable ignored) {}
+            }
         }
 
-        // 2. 在 SystemUI 内部拦截 Resources.getDimensionPixelSize，支持竖屏高、横屏高、宽度
+        // 2. 在“android” (system_server) 和 “com.android.systemui” 进程中同时拦截资源尺寸请求
         try {
             XposedHelpers.findAndHookMethod(Resources.class, "getDimensionPixelSize", int.class, new XC_MethodHook() {
                 @Override
@@ -74,7 +76,6 @@ public class XposedMain implements IXposedHookLoadPackage {
                     } catch (Exception ignored) {}
                 }
             });
-            XposedBridge.log("NavbarCustomizer: Successfully hooked Resources.getDimensionPixelSize for all nav dimensions");
         } catch (Throwable e) {
             XposedBridge.log("NavbarCustomizer: Failed to hook Resources -> " + e.getMessage());
         }
