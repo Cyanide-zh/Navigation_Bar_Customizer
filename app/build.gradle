@@ -1,0 +1,32 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.example.navbarcustomizer'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.example.navbarcustomizer"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // 引入 Xposed API 依赖（仅编译时使用，不要打包进 apk 内部以免冲突）
+    compileOnly 'de.robv.android.xposed:api:82'
+}
