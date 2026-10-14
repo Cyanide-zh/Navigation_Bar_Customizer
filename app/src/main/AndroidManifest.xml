@@ -15,7 +15,7 @@
         <!-- 模块描述 -->
         <meta-data
             android:name="xposeddescription"
-            android:value="通过纯文本配置自定义导航栏高度及三大金刚键暗色状态,配置文件在/data/system/navbar_customizer_config.txt,作用域选择系统界面" />
+            android:value="通过纯文本配置自定义导航栏高度及三大金刚键暗色状态,配置文件在/data/system/navbar_customizer_config.txt,作用域选择系统界面和系统框架。" />
         
         <!-- 最低支持的 Xposed API 版本 -->
         <meta-data
