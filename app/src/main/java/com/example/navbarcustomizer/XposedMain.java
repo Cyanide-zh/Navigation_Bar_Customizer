@@ -56,6 +56,7 @@ public class XposedMain implements IXposedHookLoadPackage {
         }
 
         // 2. Hook 资源高度
+        
         try {
             XposedHelpers.findAndHookMethod(Resources.class, "getDimensionPixelSize", int.class, new XC_MethodHook() {
                 @Override
@@ -72,14 +73,15 @@ public class XposedMain implements IXposedHookLoadPackage {
                                 // 获取当前设备的屏幕密度 (density)，用于 dp 转 px
                                 float density = res.getDisplayMetrics().density;
 
-                                if (entryName.equals("navigation_bar_height") && customNavBarHeightDp != -1) {
-                                    int px = (int) (customNavBarHeightDp * density + 0.5f);
+                                if (entryName.equals("navigation_bar_height") && customNavBarHeight != -1) {
+                                    // 如果你想填 dp，可以用 customNavBarHeight * density；如果直接填像素 px，则去掉 density
+                                    int px = (int) (customNavBarHeight * density + 0.5f);
                                     param.setResult(px);
-                                } else if (entryName.equals("navigation_bar_height_landscape") && customNavBarHeightLandscapeDp != -1) {
-                                    int px = (int) (customNavBarHeightLandscapeDp * density + 0.5f);
+                                } else if (entryName.equals("navigation_bar_height_landscape") && customNavBarHeightLandscape != -1) {
+                                    int px = (int) (customNavBarHeightLandscape * density + 0.5f);
                                     param.setResult(px);
-                                } else if (entryName.equals("navigation_bar_width") && customNavBarWidthDp != -1) {
-                                    int px = (int) (customNavBarWidthDp * density + 0.5f);
+                                } else if (entryName.equals("navigation_bar_width") && customNavBarWidth != -1) {
+                                    int px = (int) (customNavBarWidth * density + 0.5f);
                                     param.setResult(px);
                                 }
                             }
