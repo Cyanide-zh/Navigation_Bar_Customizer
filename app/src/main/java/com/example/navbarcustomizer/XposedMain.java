@@ -56,7 +56,6 @@ public class XposedMain implements IXposedHookLoadPackage {
         }
 
         // 2. Hook 资源高度
-
         try {
             XposedHelpers.findAndHookMethod(Resources.class, "getDimensionPixelSize", int.class, new XC_MethodHook() {
                 @Override
@@ -71,16 +70,16 @@ public class XposedMain implements IXposedHookLoadPackage {
                             String entryName = res.getResourceEntryName(id);
                             if (entryName != null) {
                                 float density = res.getDisplayMetrics().density;
-                                
+                        
                                 if (entryName.equals("navigation_bar_height") && customNavBarHeight != -1) {
                                     // 如果你想填 dp，可以用 customNavBarHeight * density；如果直接填像素 px，则去掉 density
-                                    int px = (int) (customNavBarHeight * density + 0.5f);
+                                    int px = (int) (customNavBarHeight + 0.5f);
                                     param.setResult(px);
                                 } else if (entryName.equals("navigation_bar_height_landscape") && customNavBarHeightLandscape != -1) {
-                                    int px = (int) (customNavBarHeightLandscape * density + 0.5f);
+                                    int px = (int) (customNavBarHeightLandscape + 0.5f);
                                     param.setResult(px);
                                 } else if (entryName.equals("navigation_bar_width") && customNavBarWidth != -1) {
-                                    int px = (int) (customNavBarWidth * density + 0.5f);
+                                    int px = (int) (customNavBarWidth + 0.5f);
                                     param.setResult(px);
                                 }
                             }
