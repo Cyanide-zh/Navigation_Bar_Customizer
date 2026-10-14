@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@android:mipmap/sym_def_app_icon"
+        android:label="Navbar Customizer"
+        android:supportsRtl="true">
+
+        <!-- 声明这是一个 Xposed 模块 -->
+        <meta-data
+            android:name="xposedmodule"
+            android:value="true" />
+        
+        <!-- 模块描述 -->
+        <meta-data
+            android:name="xposeddescription"
+            android:value="通过纯文本配置自定义导航栏高度及三大金刚键暗色状态" />
+        
+        <!-- 最低支持的 Xposed API 版本 -->
+        <meta-data
+            android:name="xposedminversion"
+            android:value="82+" />
+
+    </application>
+
+</manifest>
