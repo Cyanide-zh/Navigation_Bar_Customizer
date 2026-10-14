@@ -1,8 +1,6 @@
 package com.example.navbarcustomizer;
 
-import android.content.Context;
-import android.view.View;
-import android.view.ViewGroup;
+import android.content.res.Resources;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -19,6 +17,8 @@ public class XposedMain implements IXposedHookLoadPackage {
 
     private boolean alwaysDark = true;
     private float customNavBarHeightDp = -1f;
+    private float customNavBarHeightLandscapeDp = -1f;
+    private float customNavBarWidthDp = -1f;
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
@@ -26,7 +26,7 @@ public class XposedMain implements IXposedHookLoadPackage {
             return;
         }
 
-        XposedBridge.log("NavbarCustomizer: Loaded into SystemUI (Pure SystemUI Mode)");
+        XposedBridge.log("NavbarCustomizer: Loaded into SystemUI (Full Dimension Override Mode)");
 
         loadConfig();
 
@@ -48,38 +48,35 @@ public class XposedMain implements IXposedHookLoadPackage {
             } catch (Throwable ignored) {}
         }
 
-        // 2. 纯 SystemUI 内部拦截：直接修改 NavigationBarView 的高度
-        if (customNavBarHeightDp != -1f) {
-            try {
-                // 锁定 SystemUI 中的 NavigationBarView 类
-                Class<?> navBarViewClass = XposedHelpers.findClassIfExists(
-                        "com.android.systemui.navigationbar.NavigationBarView", 
-                        lpparam.classLoader
-                );
+        // 2. 在 SystemUI 内部拦截 Resources.getDimensionPixelSize，支持竖屏高、横屏高、宽度
+        try {
+            XposedHelpers.findAndHookMethod(Resources.class, "getDimensionPixelSize", int.class, new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    int id = (int) param.args[0];
+                    try {
+                        Resources res = (Resources) param.thisObject;
+                        String entryName = res.getResourceEntryName(id);
+                        if (entryName != null) {
+                            float density = res.getDisplayMetrics().density;
 
-                if (navBarViewClass != null) {
-                    // Hook 视图加载完成或尺寸更新的方法（不同 Android 版本通常在 onFinishInflate 或 updateLayoutters 中初始化布局）
-                    XposedHelpers.findAndHookMethod(navBarViewClass, "onFinishInflate", new XC_MethodHook() {
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                            View navBarView = (View) param.thisObject;
-                            Context context = navBarView.getContext();
-                            float density = context.getResources().getDisplayMetrics().density;
-                            int targetPx = (int) (customNavBarHeightDp * density + 0.5f);
-
-                            // 强行修改其 LayoutParams 高度
-                            ViewGroup.LayoutParams layoutParams = navBarView.getLayoutParams();
-                            if (layoutParams != null) {
-                                layoutParams.height = targetPx;
-                                navBarView.setLayoutParams(layoutParams);
-                                XposedBridge.log("NavbarCustomizer: [Pure SystemUI] Forced NavigationBarView height to " + targetPx + "px (" + customNavBarHeightDp + "dp)");
+                            if (entryName.equals("navigation_bar_height") && customNavBarHeightDp != -1f) {
+                                int targetPx = (int) (customNavBarHeightDp * density + 0.5f);
+                                param.setResult(targetPx);
+                            } else if (entryName.equals("navigation_bar_height_landscape") && customNavBarHeightLandscapeDp != -1f) {
+                                int targetPx = (int) (customNavBarHeightLandscapeDp * density + 0.5f);
+                                param.setResult(targetPx);
+                            } else if (entryName.equals("navigation_bar_width") && customNavBarWidthDp != -1f) {
+                                int targetPx = (int) (customNavBarWidthDp * density + 0.5f);
+                                param.setResult(targetPx);
                             }
                         }
-                    });
+                    } catch (Exception ignored) {}
                 }
-            } catch (Throwable e) {
-                XposedBridge.log("NavbarCustomizer: Failed to hook NavigationBarView -> " + e.getMessage());
-            }
+            });
+            XposedBridge.log("NavbarCustomizer: Successfully hooked Resources.getDimensionPixelSize for all nav dimensions");
+        } catch (Throwable e) {
+            XposedBridge.log("NavbarCustomizer: Failed to hook Resources -> " + e.getMessage());
         }
     }
 
@@ -90,9 +87,18 @@ public class XposedMain implements IXposedHookLoadPackage {
         try (FileInputStream fis = new FileInputStream(file)) {
             Properties props = new Properties();
             props.load(fis);
+            
             alwaysDark = Boolean.parseBoolean(props.getProperty("always_dark_intensity", "true"));
-            String heightStr = props.getProperty("navigation_bar_height");
-            if (heightStr != null) customNavBarHeightDp = Float.parseFloat(heightStr.trim());
+            
+            String h = props.getProperty("navigation_bar_height");
+            if (h != null) customNavBarHeightDp = Float.parseFloat(h.trim());
+
+            String hl = props.getProperty("navigation_bar_height_landscape");
+            if (hl != null) customNavBarHeightLandscapeDp = Float.parseFloat(hl.trim());
+
+            String w = props.getProperty("navigation_bar_width");
+            if (w != null) customNavBarWidthDp = Float.parseFloat(w.trim());
+
         } catch (Exception ignored) {}
     }
 }
